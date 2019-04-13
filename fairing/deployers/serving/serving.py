@@ -44,7 +44,7 @@ class Serving(Job):
         logger.warn("Deployment {} launched.".format(self.deployment.metadata.name))
         url = "http://{0}.{1}.svc.cluster.local".format(self.service.metadata.name,
                                                         self.service.metadata.namespace)
-        logger.warn("In cluster Endpoint {} launched.".format(url()))
+        logger.warn("In cluster Endpoint {} launched.".format(url))
 
         #url = self.backend.get_service_external_endpoint(self.service.metadata.name,
         #                                                 #self.service.metadata.namespace,
