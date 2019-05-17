@@ -15,16 +15,16 @@ DEPLOPYER_TYPE = 'job'
 
 
 class Job(DeployerInterface):
-    """Handle all the k8s' template building for a training 
+    """Handle all the k8s' template building for a training
     Attributes:
-        namespace: k8s namespace where the training's components 
+        namespace: k8s namespace where the training's components
             will be deployed.
         runs: Number of training(s) to be deployed. Hyperparameter search
             will generate multiple jobs.
     """
 
     def __init__(self, namespace=None, runs=1, output=None,
-                 cleanup=True, labels=None, job_name=DEFAULT_JOB_NAME,
+                 cleanup=False, labels=None, job_name=DEFAULT_JOB_NAME,
                  stream_log=True, deployer_type=DEPLOPYER_TYPE,
                  pod_spec_mutators=None):
         if namespace is None:
@@ -80,7 +80,7 @@ class Job(DeployerInterface):
         return k8s_client.V1PodTemplateSpec(
             metadata=k8s_client.V1ObjectMeta(name="fairing-deployer", labels=self.labels),
             spec=pod_spec)
-        
+
     def generate_deployment_spec(self, pod_template_spec):
         """Generate a V1Job initialized with correct completion and
          parallelism (for HP search) and with the provided V1PodTemplateSpec"""
@@ -92,7 +92,7 @@ class Job(DeployerInterface):
             template=pod_template_spec,
             parallelism=self.runs,
             completions=self.runs)
-        
+
         return k8s_client.V1Job(
             api_version="batch/v1",
             kind="Job",
