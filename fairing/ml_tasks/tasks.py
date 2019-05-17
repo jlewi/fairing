@@ -80,7 +80,7 @@ class PredictionEndpoint(BaseTask):
         }
         serialized_data = json.dumps(pdata)
         r = requests.post(self.url, data={'json':serialized_data})
-        logger.warning(r.text)
+        return r.text
 
     def delete(self):
         self._deployer.delete()
