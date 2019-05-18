@@ -17,9 +17,16 @@ class Serving(Job):
     serving_class: the name of the class that holds the predict function.
 
     """
-    def __init__(self, serving_class, namespace=None, runs=1, labels=None):
+
+    # TODO(https://github.com/kubeflow/fairing/issues/206): The default
+    # should be ClusterIP not LoadBalancer because LoadBalancer opens up
+    # a port. But this breaks the post submit test
+    # https://github.com/kubeflow/fairing/blob/master/examples/prediction/xgboost-high-level-apis.ipynb
+    def __init__(self, serving_class, namespace=None, runs=1, labels=None,
+                 service_type="LoadBalancer"):
         super(Serving, self).__init__(namespace, runs, deployer_type=DEPLOPYER_TYPE, labels=labels)
         self.serving_class = serving_class
+        self.service_type = service_type
 
     def deploy(self, pod_spec):
         self.job_id = str(uuid.uuid1())
@@ -41,14 +48,17 @@ class Serving(Job):
         self.deployment = apps_v1.create_namespaced_deployment(self.namespace, self.deployment_spec)
         self.service = v1_api.create_namespaced_service(self.namespace, self.service_spec)
 
-        logger.warn("Deployment {} launched.".format(self.deployment.metadata.name))
-        url = "http://{0}.{1}.svc.cluster.local".format(self.service.metadata.name,
-                                                        self.service.metadata.namespace)
-        logger.warn("In cluster Endpoint {} launched.".format(url))
+        if self.service_type == "LoadBalancer":
+            url = self.backend.get_service_external_endpoint(
+                self.service.metadata.name, self.service.metadata.namespace,
+                self.service.metadata.labels)
+        else:
+            # TODO(jlewi): The suffix won't always be cluster.local since
+            # its configurable. Is there a way to get it programmatically?
+            url = "http://{0}.{1}.svc.cluster.local".format(
+                self.service.metadata.name, self.service.metadata.namespace)
 
-        #url = self.backend.get_service_external_endpoint(self.service.metadata.name,
-        #                                                 #self.service.metadata.namespace,
-        #                                                 #self.service.metadata.labels)
+        logging.info("Cluster endpoint: %s", url)
         return url
 
     def generate_deployment_spec(self, pod_template_spec):
@@ -81,7 +91,7 @@ class Serving(Job):
                     name="serving",
                     port=5000
                 )],
-                type="ClusterIP",
+                type=self.service_type,
             )
         )
 
